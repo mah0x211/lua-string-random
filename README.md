@@ -30,12 +30,12 @@ print(randstr(10)) -- gNp%=m#c:S
 - `charset:string`: specifiy one of the following character set names.
     - `uppercase`: `ABCDEFGHIJKLMNOPQRSTUVWXYZ`
     - `lowercase`: `abcdefghijklmnopqrstuvwxyz`
-    - `alpha`: `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`
+    - `alpha`: `uppercase` and `lowercase`
     - `numeric`: `0123456789`
-    - `alnum`: `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`
+    - `alnum`: `alpha` and `numeric`
     - `symbol`: <code>!"#$%&'()*+,-./:;<=>?@[]^_`{|}~</code>
-    - `printable`: <code>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"#$%&'()*+,-./:;<=>?@[]^_`{|}~</code>
-    - `urlsafe`: `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`
+    - `printable`: `alnum` and `symbol`
+    - `urlsafe`: `alnum` and `-_`
 
 **Returns**
 
