@@ -22,11 +22,9 @@
 local concat = table.concat
 local format = string.format
 local floor = math.floor
-local random = math.random
+local sfmt = require('sfmt')
 local INF_POS = math.huge
-
-math.randomseed(os.time())
-
+-- constants
 local UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 local LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
 local NUMERIC = '0123456789'
@@ -60,7 +58,7 @@ end
 --- @param charset? string
 --- @return string url
 local function randstr(n, charset)
-    if type(n) ~= 'number' or n < 0 or n == INF_POS or not rawequal(floor(n), n) then
+    if type(n) ~= 'number' or n < 0 or n == INF_POS or floor(n) ~= n then
         error('n must be uint', 2)
     elseif charset == nil then
         charset = 'printable'
@@ -70,11 +68,13 @@ local function randstr(n, charset)
         error(format('invalid charset %q', charset), 2)
     end
 
+    -- generate n random numbers from 1 to nchar
+    local gen = sfmt.new()
     local tbl = CHARSETS[charset]
     local nchar = #tbl
     local res = {}
     for i = 1, n do
-        res[i] = tbl[random(1, nchar)]
+        res[i] = tbl[gen:rand32(nchar, 1)]
     end
     return concat(res)
 end
