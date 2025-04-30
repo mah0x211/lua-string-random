@@ -22,7 +22,6 @@
 local concat = table.concat
 local format = string.format
 local floor = math.floor
-local sfmt = require('sfmt')
 local INF_POS = math.huge
 -- constants
 local UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -53,11 +52,61 @@ for name, s in pairs({
     CHARSETS[name] = charset
 end
 
---- random_bytes
+local new_sfmt = require('sfmt').new
+local urandom = require('os.urandom')
+local CACHE_URANDOM
+local CACHE_SFMT
+
+--- genrandstr generate n bytes of random string
+--- @param n integer
+--- @param charset string[]
+--- @return string str random string
+--- @return string generator generator name
+local function genrandstr(n, charset)
+    local nchar = #charset
+    local r = CACHE_URANDOM or urandom()
+    local res = {}
+
+    if r then
+        if n == 0 then
+            return '', 'os.urandom'
+        end
+
+        local list = r:get32u(n)
+        if list then
+            for i = 1, n do
+                local v = 1 + (list[i] % nchar)
+                res[i] = charset[v]
+            end
+            CACHE_URANDOM = r
+            return concat(res), 'os.urandom'
+        end
+        -- close urandom if failed to get random numbers
+        CACHE_URANDOM = nil
+        r:close()
+    end
+
+    -- fallback to sfmt
+    if CACHE_SFMT == nil then
+        r = new_sfmt()
+        CACHE_SFMT = r
+    else
+        r = CACHE_SFMT
+        r:init()
+    end
+
+    for i = 1, n do
+        res[i] = charset[r:rand32(nchar, 1)]
+    end
+    return concat(res), 'sfmt'
+end
+
+--- random return n bytes of random string
 --- @param n integer
 --- @param charset? string
---- @return string url
-local function randstr(n, charset)
+--- @return string str
+--- @return string generator
+local function random(n, charset)
     if type(n) ~= 'number' or n < 0 or n == INF_POS or floor(n) ~= n then
         error('n must be uint', 2)
     elseif charset == nil then
@@ -67,16 +116,8 @@ local function randstr(n, charset)
     elseif not CHARSETS[charset] then
         error(format('invalid charset %q', charset), 2)
     end
-
-    -- generate n random numbers from 1 to nchar
-    local gen = sfmt.new()
-    local tbl = CHARSETS[charset]
-    local nchar = #tbl
-    local res = {}
-    for i = 1, n do
-        res[i] = tbl[gen:rand32(nchar, 1)]
-    end
-    return concat(res)
+    -- generate n bytes of random string
+    return genrandstr(n, CHARSETS[charset])
 end
 
-return randstr
+return random
