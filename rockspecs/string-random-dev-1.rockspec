@@ -11,7 +11,8 @@ description = {
 }
 dependencies = {
     "lua >= 5.1",
-    "sfmt >= 1.5.4-2",
+    "sfmt >= 1.5.4",
+    "os-urandom >= 0.1.0",
 }
 build = {
     type = "builtin",

@@ -16,11 +16,11 @@ luarocks install string-random
 
 ```lua
 local randstr = require('string.random')
-print(randstr(10)) -- gNp%=m#c:S
+print(('%q, %q'):format(randstr(10))) -- "Uy~lZ3I<LE", "os.urandom"
 ```
 
 
-## s = random( n [, charset] )
+## s, genname = random( n [, charset] )
 
 `string.random` function generate a random string.
 
@@ -40,4 +40,8 @@ print(randstr(10)) -- gNp%=m#c:S
 **Returns**
 
 - `s:string`: generated string.
+- `genname:string`: name of the generator used.
+    - `os.urandom`: use `os.urandom` module.
+    - `sfmt`: use `sfmt` module.
+
 
