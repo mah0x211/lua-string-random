@@ -19,10 +19,35 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 -- THE SOFTWARE.
 --
-local concat = table.concat
-local format = string.format
-local floor = math.floor
-local INF_POS = math.huge
+local new_sfmt = require('sfmt').new
+local new_urandom = require('os.urandom')
+local CACHE_SFMT
+local CACHE_URANDOM
+
+--- generate n bytes of random bytes
+--- @param n integer
+--- @return string str random string
+--- @return string generator generator name
+local function gen_bytes(n)
+    local r = CACHE_URANDOM or new_urandom()
+    if r then
+        local s = r:bytes(n)
+        if s then
+            CACHE_URANDOM = r
+            return s, 'os.urandom'
+        end
+        -- close urandom if failed to get random numbers
+        CACHE_URANDOM = nil
+        r:close()
+    end
+
+    -- fallback to sfmt
+    r = CACHE_SFMT or new_sfmt()
+    CACHE_SFMT = r
+
+    return r:bytes(n), 'sfmt'
+end
+
 -- constants
 local UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 local LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
@@ -52,60 +77,85 @@ for name, s in pairs({
     CHARSETS[name] = charset
 end
 
-local new_sfmt = require('sfmt').new
-local urandom = require('os.urandom')
-local CACHE_URANDOM
-local CACHE_SFMT
+local byte = string.byte
+local format = string.format
+local gsub = string.gsub
+local base64 = require('base64mix')
+local base32 = require('base32')
 
---- genrandstr generate n bytes of random string
---- @param n integer
+--- Encoder functions for different encodings
+local ENCODER = {
+    base64 = base64.encode,
+    base64url = base64.encodeURL,
+    base32 = base32.encode,
+    base32crockford = function(b)
+        return base32.encode(b, 'crockford')
+    end,
+    hex = function(b)
+        return (gsub(b, '.', function(c)
+            return format('%02x', byte(c))
+        end))
+    end,
+}
+
+--- Number of bits per byte for each encoding
+local BIT_PER_ENCBYTE = {
+    base64 = 6,
+    base64url = 6,
+    base32 = 5,
+    base32crockford = 5,
+    hex = 4,
+}
+
+local sub = string.sub
+local ceil = math.ceil
+
+--- generate encoded random string
+--- @param len integer
+--- @param charset string
+--- @return string? str random string
+--- @return string generator generator name
+--- @return any err error object
+local function gen_random_encstr(len, charset)
+    -- calculate the number of random bytes needed for the encoding
+    local blen = ceil(len * BIT_PER_ENCBYTE[charset] / 8)
+    local b, generator = gen_bytes(blen)
+    local s, err = ENCODER[charset](b)
+    -- truncate to the desired length
+    return s and sub(s, 1, len) or nil, generator, err
+end
+
+local concat = table.concat
+
+--- generate random string from charset
+--- @param len integer
 --- @param charset string[]
 --- @return string str random string
 --- @return string generator generator name
-local function genrandstr(n, charset)
+--- @return any err error object
+local function gen_random_str(len, charset)
     local nchar = #charset
-    local r = CACHE_URANDOM or urandom()
+    local s, generator = gen_bytes(len * 2)
+    local offset = 1
     local res = {}
 
-    if r then
-        if n == 0 then
-            return '', 'os.urandom'
-        end
-
-        local list = r:get32u(n)
-        if list then
-            for i = 1, n do
-                local v = 1 + (list[i] % nchar)
-                res[i] = charset[v]
-            end
-            CACHE_URANDOM = r
-            return concat(res), 'os.urandom'
-        end
-        -- close urandom if failed to get random numbers
-        CACHE_URANDOM = nil
-        r:close()
+    for i = 1, len do
+        local n = byte(s, offset) * 256 + byte(s, offset + 1)
+        offset = offset + 2
+        res[i] = charset[1 + (n % nchar)]
     end
-
-    -- fallback to sfmt
-    if CACHE_SFMT == nil then
-        r = new_sfmt()
-        CACHE_SFMT = r
-    else
-        r = CACHE_SFMT
-        r:init()
-    end
-
-    for i = 1, n do
-        res[i] = charset[r:rand32(nchar, 1)]
-    end
-    return concat(res), 'sfmt'
+    return concat(res), generator
 end
+
+local floor = math.floor
+local INF_POS = math.huge
 
 --- random return n bytes of random string
 --- @param n integer
 --- @param charset? string
---- @return string str
+--- @return string? str
 --- @return string generator
+--- @return any err
 local function random(n, charset)
     if type(n) ~= 'number' or n < 0 or n == INF_POS or floor(n) ~= n then
         error('n must be uint', 2)
@@ -113,11 +163,17 @@ local function random(n, charset)
         charset = 'printable'
     elseif type(charset) ~= 'string' then
         error('charset must be string', 2)
-    elseif not CHARSETS[charset] then
-        error(format('invalid charset %q', charset), 2)
     end
-    -- generate n bytes of random string
-    return genrandstr(n, CHARSETS[charset])
+
+    if n == 0 then
+        return '', 'os.urandom'
+    elseif CHARSETS[charset] then
+        -- if charset is a table, use it directly
+        return gen_random_str(n, CHARSETS[charset])
+    elseif ENCODER[charset] then
+        return gen_random_encstr(n, charset)
+    end
+    error(format('invalid charset %q', charset), 2)
 end
 
 return random
