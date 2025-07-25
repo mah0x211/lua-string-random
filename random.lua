@@ -80,9 +80,12 @@ end
 local byte = string.byte
 local format = string.format
 local gsub = string.gsub
+local base64 = require('base64mix')
 
 --- Encoder functions for different encodings
 local ENCODER = {
+    base64 = base64.encode,
+    base64url = base64.encodeURL,
     hex = function(b)
         return (gsub(b, '.', function(c)
             return format('%02x', byte(c))
@@ -92,6 +95,8 @@ local ENCODER = {
 
 --- Number of bits per byte for each encoding
 local BIT_PER_ENCBYTE = {
+    base64 = 6,
+    base64url = 6,
     hex = 4,
 }
 

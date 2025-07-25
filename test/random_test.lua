@@ -67,6 +67,20 @@ function testcase.urlsafe()
     assert.equal(#s, 100)
 end
 
+function testcase.base64()
+    -- test that returns a base64 encoded random string
+    local s = random(80, 'base64')
+    assert.match(s, '^[0-9A-Za-z+/=]+$', false)
+    assert.equal(#s, 80)
+end
+
+function testcase.base64url()
+    -- test that returns a base64url encoded random string
+    local s = random(80, 'base64url')
+    assert.match(s, '^[0-9A-Za-z_-]+$', false)
+    assert.equal(#s, 80)
+end
+
 function testcase.hex()
     -- test that returns a hex encoded random string
     local s = random(80, 'hex')

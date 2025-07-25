@@ -11,6 +11,7 @@ description = {
 }
 dependencies = {
     "lua >= 5.1",
+    "base64mix >= 1.1.1",
     "sfmt >= 1.5.4",
     "os-urandom >= 0.2.0",
 }
