@@ -81,6 +81,22 @@ function testcase.base64url()
     assert.equal(#s, 80)
 end
 
+function testcase.base32()
+    -- test that returns a base32 encoded random string
+    local s = random(80, 'base32')
+    -- excludes 'I', 'L', 'O', 'U'
+    assert.match(s, '^[2-7A-Z]+$', false)
+    assert.equal(#s, 80)
+end
+
+function testcase.base32crockford()
+    -- test that returns a base32crockford encoded random string
+    local s = random(80, 'base32crockford')
+    -- excludes 'I', 'L', 'O', 'U'
+    assert.match(s, '^[0-9ABCDEFGHJKMNPQRSTVWXYZ]+=*$', false)
+    assert.equal(#s, 80)
+end
+
 function testcase.hex()
     -- test that returns a hex encoded random string
     local s = random(80, 'hex')
